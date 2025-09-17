@@ -10,6 +10,8 @@ def reload_map():
         for x in range(len(the_game[y])):
             if the_game[y][x] == 1:
                 pygame.draw.rect(screen, colorChoiced, (x * element_size, y * element_size, element_size, element_size))
+            if not played:
+                pygame.draw.rect(screen, (40, 40, 40), (x * element_size, y * element_size, 10, 10), 1)
 def live():
     global the_game
     new_game = copy.deepcopy(the_game)
@@ -92,7 +94,6 @@ while is_running:
             if played:
                 live()
         reload_map()
-
     pygame.display.flip()
     clock.tick(60)
 
