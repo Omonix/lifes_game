@@ -1,9 +1,19 @@
-import pygame, copy, random
+import pygame, copy, random, urllib.request
+from PIL import Image
+from io import BytesIO
+import tkinter as tk
+from tkinter import simpledialog
 
 def add_entity(x, y):
-    the_game[y][x] = 1
+    try:
+        the_game[y][x] = 1
+    except:
+        pass
 def remove_entity(x, y):
-    the_game[y][x] = 0
+    try:
+        the_game[y][x] = 0
+    except:
+        pass
 def reload_map():
     screen.fill((0, 0, 0))
     for y in range(len(the_game)):
@@ -32,41 +42,61 @@ def live():
                 if friends == 3:
                     new_game[y][x] = 1
     the_game = new_game
-def select_tool(key):
-    global tool
-    match key:
-        case "1":
-            print("Put selected")
-        case "2":
-            print("Erase selected")
-    tool = key
-def do_tool(pos):
-    x, y = pos
-    match tool:
-        case "1":
-            add_entity(x // element_size, y // element_size)
-            reload_map()
-        case "2":
-            remove_entity(x // element_size, y // element_size)
-            reload_map()
-        case _:
-            print("No tool selected")
+def greyMode(img):
+    w, h = img.size
+    for y in range(h):
+        for x in range(w):
+            r, g, b = img.getpixel((x, y))
+            new_color = (r + g + b) // 3
+            img.putpixel((x, y), (new_color, new_color, new_color))
+def threshold(img, niveau):
+    greyMode(img)
+    w, h = img.size
+    for y in range(h):
+        for x in range(w):
+            r, g, b = img.getpixel((x, y))
+            if r < niveau:
+                img.putpixel((x, y), (0, 0, 0))
+            else:
+                img.putpixel((x, y), (255, 255, 255))
+def image_to_map():
+    global the_game
+    try:
+        with urllib.request.urlopen(simpledialog.askstring("Entrer l'URL", "Entre l'URL de l'image :")) as response:
+            image_choiced = Image.open(BytesIO(response.read())).convert("RGB").resize((width // element_size, height // element_size))
+    except:
+        return
+    threshold(image_choiced, 50)
+    w, h = image_choiced.size
+    the_game = [[0 for i in range(w)] for j in range(h)]
+    for y in range(h):
+        for x in range(w):
+            r, g, b = image_choiced.getpixel((x, y))
+            if r == 255:
+                the_game[y][x] = 1
+            else:
+                the_game[y][x] = 0
 
 pygame.init()
-width, height = 1920, 1080
-element_size = 8
+root = tk.Tk()
+root.withdraw()
+
+info = pygame.display.Info()
+width, height = info.current_w, info.current_h
+clock = pygame.time.Clock()
+lived = pygame.USEREVENT + 1
+pygame.time.set_timer(lived, 75)
+element_size = 10
+is_running = True
+played = True
+
 screen = pygame.display.set_mode((width, height))
 the_game = [[0 for i in range(width // element_size)] for j in range (height // element_size)]
 colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (0, 255, 255), (255, 0, 255), (255, 255, 255)]
 colorChoiced = colors[random.randint(0, 6)]
-clock = pygame.time.Clock()
-lived = pygame.USEREVENT + 1
-pygame.time.set_timer(lived, 75)
-is_running = True
-played = True
-tool = "1"
 
 reload_map()
+
 while is_running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -82,6 +112,8 @@ while is_running:
                 the_game = [[random.randint(0, 1) for i in range(width // element_size)] for j in range (height // element_size)]
             elif pygame.key.name(event.key) == "t":
                 colorChoiced = colors[random.randint(0, 6)]
+            elif pygame.key.name(event.key) == "i":
+                image_to_map()
             elif pygame.key.name(event.key) == "escape":
                 is_running = False
         if pygame.mouse.get_pressed()[0]:
