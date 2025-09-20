@@ -49,24 +49,24 @@ def greyMode(img):
             r, g, b = img.getpixel((x, y))
             new_color = (r + g + b) // 3
             img.putpixel((x, y), (new_color, new_color, new_color))
-def threshold(img, niveau):
+def threshold(img, level):
     greyMode(img)
     w, h = img.size
     for y in range(h):
         for x in range(w):
             r, g, b = img.getpixel((x, y))
-            if r < niveau:
+            if r < level:
                 img.putpixel((x, y), (0, 0, 0))
             else:
                 img.putpixel((x, y), (255, 255, 255))
-def image_to_map():
+def image_to_map(level):
     global the_game
     try:
         with urllib.request.urlopen(simpledialog.askstring("Entrer l'URL", "Entre l'URL de l'image :")) as response:
             image_choiced = Image.open(BytesIO(response.read())).convert("RGB").resize((width // element_size, height // element_size))
     except:
         return
-    threshold(image_choiced, 50)
+    threshold(image_choiced, level)
     w, h = image_choiced.size
     the_game = [[0 for i in range(w)] for j in range(h)]
     for y in range(h):
@@ -76,6 +76,14 @@ def image_to_map():
                 the_game[y][x] = 1
             else:
                 the_game[y][x] = 0
+def handle_level():
+    global image_level
+    try:
+        level = int(simpledialog.askstring("Niveau de gris", "Entre le niveau de gris (0-255) :", initialvalue=str(image_level)))
+        if 0 <= level <= 255:
+            image_level = level
+    except:
+        pass
 
 pygame.init()
 root = tk.Tk()
@@ -87,6 +95,7 @@ clock = pygame.time.Clock()
 lived = pygame.USEREVENT + 1
 pygame.time.set_timer(lived, 75)
 element_size = 10
+image_level = 80
 is_running = True
 played = True
 
@@ -113,7 +122,9 @@ while is_running:
             elif pygame.key.name(event.key) == "t":
                 colorChoiced = colors[random.randint(0, 6)]
             elif pygame.key.name(event.key) == "i":
-                image_to_map()
+                image_to_map(image_level)
+            elif pygame.key.name(event.key) == "n":
+                handle_level()
             elif pygame.key.name(event.key) == "escape":
                 is_running = False
         if pygame.mouse.get_pressed()[0]:
