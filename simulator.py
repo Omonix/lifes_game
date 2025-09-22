@@ -2,7 +2,7 @@ import pygame, copy, random, urllib.request
 from PIL import Image
 from io import BytesIO
 import tkinter as tk
-from tkinter import simpledialog
+from tkinter import simpledialog, messagebox
 
 def add_entity(x, y):
     try:
@@ -21,7 +21,7 @@ def reload_map():
             if the_game[y][x] == 1:
                 pygame.draw.rect(screen, colorChoiced, (x * element_size, y * element_size, element_size, element_size))
             if not played:
-                pygame.draw.rect(screen, (40, 40, 40), (x * element_size, y * element_size, 10, 10), 1)
+                pygame.draw.rect(screen, (40, 40, 40), (x * element_size, y * element_size, element_size, element_size), 1)
 def live():
     global the_game
     new_game = copy.deepcopy(the_game)
@@ -42,35 +42,34 @@ def live():
                 if friends == 3:
                     new_game[y][x] = 1
     the_game = new_game
-def greyMode(img):
+def threshold(img, level):
     w, h = img.size
     for y in range(h):
         for x in range(w):
             r, g, b = img.getpixel((x, y))
             new_color = (r + g + b) // 3
-            img.putpixel((x, y), (new_color, new_color, new_color))
-def threshold(img, level):
-    greyMode(img)
-    w, h = img.size
-    for y in range(h):
-        for x in range(w):
-            r, g, b = img.getpixel((x, y))
-            if r < level:
+            if new_color < level:
                 img.putpixel((x, y), (0, 0, 0))
             else:
                 img.putpixel((x, y), (255, 255, 255))
 def image_to_map(level):
-    global the_game
+    global the_game, image_choiced
     try:
-        with urllib.request.urlopen(simpledialog.askstring("Entrer l'URL", "Entre l'URL de l'image :")) as response:
-            image_choiced = Image.open(BytesIO(response.read())).convert("RGB").resize((width // element_size, height // element_size))
+        url = simpledialog.askstring("Enter URL", "Enter the image's URL : ")
+        if url is not None:
+            with urllib.request.urlopen(url) as response:
+                image_choiced = Image.open(BytesIO(response.read())).convert("RGB").resize((width // element_size, height // element_size))
+        else:
+            return
     except:
+        messagebox.showerror("Error", "Cannot reading image")
         return
     threshold(image_choiced, level)
     w, h = image_choiced.size
     the_game = [[0 for i in range(w)] for j in range(h)]
     for y in range(h):
         for x in range(w):
+            print(image_choiced.getpixel((x, y)))
             r, g, b = image_choiced.getpixel((x, y))
             if r == 255:
                 the_game[y][x] = 1
@@ -79,7 +78,7 @@ def image_to_map(level):
 def handle_level():
     global image_level
     try:
-        level = int(simpledialog.askstring("Niveau de gris", "Entre le niveau de gris (0-255) :", initialvalue=str(image_level)))
+        level = int(simpledialog.askstring("Grey level", "Enter the grey level (0-255) : ", initialvalue=str(image_level)))
         if 0 <= level <= 255:
             image_level = level
     except:
@@ -93,7 +92,7 @@ info = pygame.display.Info()
 width, height = info.current_w, info.current_h
 clock = pygame.time.Clock()
 lived = pygame.USEREVENT + 1
-pygame.time.set_timer(lived, 75)
+pygame.time.set_timer(lived, 85)
 element_size = 10
 image_level = 80
 is_running = True
